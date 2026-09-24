@@ -25,7 +25,9 @@ Create the PoC yourself (in the main session), modelled on `azure/basic-chatbot/
 Keep it minimal: this is a PoC skeleton, not the feature.
 
 ## 4. Infra
-If cloud resources are needed, start the **infra-author** agent for `<cloud>/<poc-name>`. Show the user its plan summary and cost estimate. Run `terraform apply` or the write-env script **only after the user explicitly approves**.
+If cloud resources are needed:
+- **azure**: start the **azure-infra** agent in plan mode for `azure/<poc-name>`. Show the user its MCP findings, plan summary, and cost estimate. **Only after the user explicitly approves**, start **azure-infra** again in apply mode, and say that the user approved.
+- **gcp / aws**: start the **infra-author** agent for `<cloud>/<poc-name>`. Show the user its plan summary and cost estimate. Run `terraform apply` or the write-env script **only after the user explicitly approves**.
 
 ## 5. Register
 Add a row to the PoC table in `<cloud>/README.md` (status `Scaffold`).

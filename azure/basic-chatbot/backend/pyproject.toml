@@ -5,15 +5,36 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
-    "python-dotenv",
     "azure-search-documents",
+    "azure-identity>=1.25.3",
+    "openai>=3.19.2",
+    "pydantic-settings>=2.15.0",
 ]
 
 [dependency-groups]
 dev = [
     "ruff",
     "pytest",
+    "pyright>=1.1.414",
 ]
 
 [tool.ruff]
 line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ASYNC", "S", "PTH"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+include = ["app", "tests"]
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"

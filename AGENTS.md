@@ -18,5 +18,7 @@ Python projects use [uv](https://docs.astral.sh/uv/) by default.
 Start a new PoC with `/new-poc <cloud> <poc-name> "<idea>"` (`.claude/skills/new-poc/`). It runs these agents from `.claude/agents/`:
 - `cloud-researcher`: checks current SDKs, models, regions, and pricing, and writes a cited brief to `docs/research.md`.
 - `infra-author`: writes Terraform in `<poc>/infra/`. It runs only plan and validate; apply and destroy need the user's approval.
+- `azure-infra`: Azure-specific infra. It uses the Azure MCP server (read-only) for live subscription context, writes Terraform, and applies only after the user approves.
+- `python-developer`: writes and changes Python code under these conventions and leaves ruff, pyright, and pytest passing. Any PoC can use it directly.
 - `poc-verifier`: an independent check against these conventions. It reports only.
 Cloud resources go in one resource group (or project, or tag set) per PoC, tagged `poc`, `owner`, `created`.

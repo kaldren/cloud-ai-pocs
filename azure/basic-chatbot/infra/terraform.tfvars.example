@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+owner           = "you@example.com"
+
+# Optional overrides
+# location          = "swedencentral"
+# search_index_name = "docs"

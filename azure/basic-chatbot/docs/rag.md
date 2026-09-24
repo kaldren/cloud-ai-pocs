@@ -8,8 +8,9 @@ Not implemented yet.
 3. **Generate** – top chunks are added to the LLM prompt as context; the answer is returned with sources.
 
 ## Azure resources
-- Azure AI Search service + index
-- An LLM / embeddings endpoint (TBD)
+- Azure AI Search service (Basic); the backend creates the `docs` index
+- Foundry account with `gpt-4.1-mini` (chat) and `text-embedding-3-small` (embeddings)
+- All keyless (RBAC); provisioned by `infra/`
 
 ## Config
 See `backend/.env.example`.
