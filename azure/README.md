@@ -11,3 +11,4 @@ az account set --subscription <subscription-id>
 ## PoCs
 | PoC | Status | Summary |
 | --- | ------ | ------- |
+| [basic-chatbot](basic-chatbot/) | Scaffold | RAG chatbot: React + FastAPI + Azure AI Search |
