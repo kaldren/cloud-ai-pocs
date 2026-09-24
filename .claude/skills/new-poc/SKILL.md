@@ -20,7 +20,7 @@ Start the **cloud-researcher** agent with the cloud, the services, and the inten
 Create the PoC yourself (in the main session), modelled on `azure/basic-chatbot/`:
 - `README.md` with a summary, a Tech stack table, Structure, and Run.
 - `backend/`: create it with `uv init`, then `uv add` the SDKs from the research brief plus `pydantic-settings`, and `uv add --dev ruff mypy pytest`. Add `.python-version`, a settings module, `.env.example` from the brief's Env vars block, a minimal app with a health endpoint, and at least one test in `tests/`.
-- `frontend/` only if a UI was requested.
+- `frontend/` only if a UI was requested. Start the **react-developer** agent to scaffold it against the backend's API.
 - `docs/` for design notes.
 Keep it minimal: this is a PoC skeleton, not the feature.
 
