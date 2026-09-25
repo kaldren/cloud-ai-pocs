@@ -13,7 +13,8 @@ Run each check and record PASS, FAIL, or N/A with evidence.
 
 **Secrets**
 - `git ls-files <poc>` shows no `.env`, keys, or credential files.
-- Grep tracked files for likely secrets (`key=`, `secret`, `password`, `AccountKey=`, `sk-`, `AKIA`, long base64 strings, connection strings).
+- `betterleaks git --redact --no-banner --log-opts="-- <poc>" .` finds no leaks in the PoC's history, and `git config --get core.hooksPath` is `.githooks`. Ignore findings in gitignored files (tfstate, `.env`); only tracked content counts.
+- If `betterleaks` is not installed, grep tracked files for likely secrets instead (`key=`, `secret`, `password`, `AccountKey=`, `sk-`, `AKIA`, long base64 strings, connection strings) and note that the scanner was missing.
 
 **Config**
 - Every env var the code reads (pydantic-settings fields, `os.environ`, `os.getenv`) appears in `.env.example`, and `.env.example` has no stale keys.

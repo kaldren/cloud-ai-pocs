@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Block commits that add secrets. Enable with: git config core.hooksPath .githooks
+set -euo pipefail
+
+if ! command -v betterleaks >/dev/null 2>&1; then
+  echo "pre-commit: betterleaks is not installed (brew install betterleaks). Commit blocked." >&2
+  exit 1
+fi
+
+exec betterleaks git --pre-commit --staged --redact --verbose --no-banner

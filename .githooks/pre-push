@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Scan the commits being pushed, including any made with --no-verify.
+set -euo pipefail
+
+if ! command -v betterleaks >/dev/null 2>&1; then
+  echo "pre-push: betterleaks is not installed (brew install betterleaks). Push blocked." >&2
+  exit 1
+fi
+
+zero=0000000000000000000000000000000000000000
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [[ "$local_sha" == "$zero" ]] && continue # branch deletion
+  if [[ "$remote_sha" == "$zero" ]]; then
+    range="$local_sha --not --remotes" # new branch: commits not on any remote yet
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  betterleaks git --redact --verbose --no-banner --log-opts="$range" .
+done

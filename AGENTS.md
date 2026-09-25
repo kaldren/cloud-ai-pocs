@@ -4,6 +4,14 @@ Independent AI PoCs grouped by cloud: `azure/`, `gcp/`, `aws/`.
 Each PoC lives in `<cloud>/<poc-name>/` and defines its own structure and tech stack.
 Never commit secrets.
 
+## Secrets
+Commits and pushes are scanned by [Betterleaks](https://github.com/betterleaks/betterleaks), locally and in CI (`.github/workflows/secret-scan.yml`).
+- One-time setup per clone: `brew install betterleaks && git config core.hooksPath .githooks`.
+- `.githooks/pre-commit` scans staged changes and `.githooks/pre-push` scans the commits being pushed. Never bypass them with `--no-verify`; `.claude/hooks/guard-git.sh` blocks that for Claude.
+- `.claude/settings.json` denies Claude reads of `.env`, keys, and Terraform state. Only `.env.example` is readable.
+- A false positive gets a `# betterleaks:allow` comment on the line, or an entry in `.betterleaksignore`.
+- If a secret is pushed: rotate it first, then rewrite history. Deleting it in a new commit is not enough.
+
 ## Python
 Python projects use [uv](https://docs.astral.sh/uv/) by default.
 - Dependencies live in `pyproject.toml`, installed with `uv add` / `uv add --dev`. Commit `uv.lock`. No `requirements.txt`, no bare `pip install`.
