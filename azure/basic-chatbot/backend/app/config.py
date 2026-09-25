@@ -1,7 +1,8 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
-from pydantic import HttpUrl
+from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
@@ -17,6 +18,8 @@ class Settings(BaseSettings):
     azure_openai_endpoint: HttpUrl
     azure_openai_chat_deployment: str
     azure_openai_embedding_deployment: str
+    # Number of chunks retrieved from the index and given to the model as sources.
+    rag_top_k: Annotated[int, Field(ge=1, le=20)] = 5
 
 
 @lru_cache(maxsize=1)

@@ -51,3 +51,17 @@ def test_rejects_non_url_endpoint(env: dict[str, str], monkeypatch: pytest.Monke
 
     with pytest.raises(ValidationError):
         get_settings()
+
+
+def test_rag_top_k_defaults_to_5(env: dict[str, str]) -> None:
+    assert get_settings().rag_top_k == 5
+
+
+@pytest.mark.parametrize("value", ["0", "21", "many"])
+def test_rag_top_k_rejects_out_of_range(
+    env: dict[str, str], monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("RAG_TOP_K", value)
+
+    with pytest.raises(ValidationError):
+        get_settings()

@@ -1,7 +1,7 @@
-"""Chat: request models, system prompt, and streaming a reply from Azure OpenAI."""
+"""Chat: request models and streaming a reply from Azure OpenAI (grounding is in app.rag)."""
 
 import logging
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from enum import StrEnum
 from typing import Annotated, Protocol, Self
 
@@ -10,8 +10,6 @@ from openai.types.chat import ChatCompletionChunk, ChatCompletionMessageParam
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
-
-SYSTEM_PROMPT = "You are a helpful assistant. Answer clearly and concisely."
 
 MAX_MESSAGES = 50
 MAX_CONTENT_CHARS = 8000
@@ -52,39 +50,35 @@ class ChunkStream(Protocol):
     def close(self) -> None: ...
 
 
-def build_messages(request: ChatRequest) -> list[ChatCompletionMessageParam]:
-    """The conversation for the model, with our system prompt first."""
-    messages: list[ChatCompletionMessageParam] = [{"role": "system", "content": SYSTEM_PROMPT}]
-    for message in request.messages:
-        if message.role is Role.USER:
-            messages.append({"role": "user", "content": message.content})
-        else:
-            messages.append({"role": "assistant", "content": message.content})
-    return messages
-
-
-def start_stream(client: OpenAI, deployment: str, request: ChatRequest) -> ChunkStream:
+def start_stream(
+    client: OpenAI, deployment: str, messages: list[ChatCompletionMessageParam]
+) -> ChunkStream:
     """Open the upstream stream. Raises on failure, before any bytes reach the client."""
-    return client.chat.completions.create(
-        model=deployment,
-        messages=build_messages(request),
-        stream=True,
-    )
+    return client.chat.completions.create(model=deployment, messages=messages, stream=True)
 
 
-def iter_text(stream: ChunkStream) -> Iterator[str]:
+def iter_text(
+    stream: ChunkStream, on_complete: Callable[[str], str] | None = None
+) -> Iterator[str]:
     """Yield the reply's text deltas; a mid-stream upstream error is logged and ends the stream.
 
     Chunks without choices (Azure's content-filter preamble) or without content are skipped.
+    After a clean finish, `on_complete` gets the full reply and whatever it returns is yielded
+    last (e.g. a sources footer). It is not called when the stream fails part-way.
     """
+    parts: list[str] = []
     try:
         for chunk in stream:
             if not chunk.choices:
                 continue
             content = chunk.choices[0].delta.content
             if content:
+                parts.append(content)
                 yield content
     except OpenAIError:
         logger.exception("Upstream model error mid-stream; ending the response early")
+        return
     finally:
         stream.close()
+    if on_complete is not None and (suffix := on_complete("".join(parts))):
+        yield suffix

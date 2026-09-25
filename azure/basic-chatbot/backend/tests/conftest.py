@@ -17,7 +17,7 @@ ENV = {
 def no_env_file(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Never read a real backend/.env in tests, and reset the settings cache."""
     monkeypatch.setitem(Settings.model_config, "env_file", None)
-    for key in ENV:
+    for key in [*ENV, "RAG_TOP_K"]:
         monkeypatch.delenv(key, raising=False)
     get_settings.cache_clear()
     yield

@@ -1,1 +1,1 @@
-"""Azure AI Search retrieval (not implemented yet — see docs/rag.md)."""
+"""RAG over Azure AI Search: index schema, chunking, ingestion, retrieval, and grounding."""

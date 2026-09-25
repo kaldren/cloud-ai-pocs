@@ -12,17 +12,23 @@ Basic RAG chatbot on Azure: a React UI talks to a FastAPI backend, which grounds
 | Auth     | Keyless (Entra ID, `DefaultAzureCredential`) |
 | Infra    | Terraform (`infra/`)          |
 
-See [`docs/rag.md`](docs/rag.md) for the planned RAG design.
+See [`docs/rag.md`](docs/rag.md) for the RAG design (ingestion and retrieval).
 
 ## Structure
 ```
 frontend/   React + TS chat UI (Vite); Dockerfile = nginx serving the build, proxying /api/* to the backend
 backend/    FastAPI app; Dockerfile = uvicorn on :8000
-  app/main.py           FastAPI app: /health, POST /chat (streams text/plain)
+  app/main.py           FastAPI app: /health, POST /chat (retrieves, then streams a grounded reply as text/plain)
   app/chat.py           Chat request models + streaming from gpt-4.1-mini
   app/config.py         Settings from env / .env
   app/azure_clients.py  Keyless Search + OpenAI clients
-  app/rag/  Azure AI Search retrieval (planned)
+  app/rag/              Azure AI Search RAG
+    index.py            `docs` index schema (hybrid: BM25 + HNSW vectors)
+    chunking.py         Markdown chunking (~500 tokens, 75 overlap)
+    ingest.py           CLI: chunk, embed, upload documents
+    retrieve.py         Hybrid query (keywords + embedded query vector), top RAG_TOP_K chunks
+    prompt.py           Grounded system prompt, numbered sources, "Sources:" footer
+data/       Sample documents to ingest (a fictional handbook)
 infra/      Terraform (see infra/README.md)
 docs/       Design notes
 ```
