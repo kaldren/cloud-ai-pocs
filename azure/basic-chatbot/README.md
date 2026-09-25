@@ -66,3 +66,48 @@ terraform apply tfplan   # after reviewing the plan
 ./deploy.sh              # az acr build both images, roll them out, print the URL
 ```
 
+
+## Architecture
+Everything lives in one resource group, `rg-basic-chatbot` (`swedencentral`), tagged `poc`, `owner`, `created`. No resource accepts API keys: the apps authenticate with a user-assigned managed identity, and the developer uses `az login`.
+
+```mermaid
+flowchart LR
+    user(["User (browser)"])
+    dev(["Developer (az login)"])
+
+    subgraph rg["Resource group: rg-basic-chatbot (swedencentral)"]
+        subgraph cae["Container Apps environment: cae-basic-chatbot (Consumption)"]
+            web["ca-basic-chatbot-web<br/>nginx + React build<br/>external ingress :8080"]
+            api["ca-basic-chatbot-api<br/>FastAPI (uvicorn)<br/>internal ingress :8000"]
+        end
+
+        id{{"id-basic-chatbot<br/>user-assigned managed identity"}}
+        acr[("ACR (Basic)<br/>frontend + backend images")]
+        log[("Log Analytics<br/>log-basic-chatbot")]
+
+        srch["Azure AI Search (Basic)<br/>index: docs (hybrid BM25 + vector)"]
+
+        subgraph aif["Foundry account (AIServices, S0)"]
+            chat["gpt-4.1-mini<br/>GlobalStandard"]
+            emb["text-embedding-3-small<br/>GlobalStandard"]
+        end
+    end
+
+    user -- HTTPS --> web
+    web -- "/api/* proxy" --> api
+    api -- "hybrid query" --> srch
+    api -- "embed query" --> emb
+    api -- "stream grounded reply" --> chat
+
+    web -. uses .-> id
+    api -. uses .-> id
+    id -. AcrPull .-> acr
+    id -. "Search Index Data Contributor<br/>Search Service Contributor" .-> srch
+    id -. "Cognitive Services OpenAI User" .-> aif
+
+    acr -- "image pull" --> cae
+    cae -- "logs" --> log
+
+    dev -- "az acr build (deploy.sh)" --> acr
+    dev -- "ingest (embed + upload)" --> srch
+```
