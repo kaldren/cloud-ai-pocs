@@ -16,8 +16,8 @@ See [`docs/rag.md`](docs/rag.md) for the planned RAG design.
 
 ## Structure
 ```
-frontend/   React app (Vite)
-backend/    FastAPI app
+frontend/   React app (Vite); Dockerfile = nginx serving the build, proxying /api/* to the backend
+backend/    FastAPI app; Dockerfile = uvicorn on :8000
   app/config.py         Settings from env / .env
   app/azure_clients.py  Keyless Search + OpenAI clients
   app/rag/  Azure AI Search retrieval (planned)
@@ -35,3 +35,12 @@ uv run uvicorn app.main:app --reload   # http://localhost:8000
 # frontend
 cd frontend && npm install && npm run dev   # http://localhost:5173
 ```
+
+## Deploy to Azure Container Apps
+Both apps run in one Container Apps environment. The frontend has external ingress, and its nginx proxies `/api/*` to the backend. The backend has internal ingress only and calls AI Search and Foundry through a user-assigned managed identity, so no keys are involved. In local dev, Vite proxies `/api/*` to `localhost:8000` the same way.
+```bash
+cd infra
+terraform apply tfplan   # after reviewing the plan
+./deploy.sh              # az acr build both images, roll them out, print the URL
+```
+

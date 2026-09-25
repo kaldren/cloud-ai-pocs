@@ -24,3 +24,37 @@ output "azure_openai_embedding_deployment" {
   description = "AZURE_OPENAI_EMBEDDING_DEPLOYMENT"
   value       = azurerm_cognitive_deployment.embedding.name
 }
+
+# ---------------------------------------------------------------------------
+# Hosting outputs (NOT .env keys; write-env.sh ignores them, deploy.sh reads them)
+# ---------------------------------------------------------------------------
+
+output "acr_name" {
+  description = "Container registry name (az acr build --registry)"
+  value       = azurerm_container_registry.this.name
+}
+
+output "acr_login_server" {
+  description = "Container registry login server (image prefix)"
+  value       = azurerm_container_registry.this.login_server
+}
+
+output "resource_group_name" {
+  description = "Resource group holding all PoC resources"
+  value       = azurerm_resource_group.this.name
+}
+
+output "backend_app_name" {
+  description = "Backend container app name"
+  value       = azurerm_container_app.api.name
+}
+
+output "frontend_app_name" {
+  description = "Frontend container app name"
+  value       = azurerm_container_app.web.name
+}
+
+output "frontend_url" {
+  description = "Public URL of the frontend"
+  value       = "https://${azurerm_container_app.web.ingress[0].fqdn}"
+}
