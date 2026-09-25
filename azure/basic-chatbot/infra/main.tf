@@ -184,7 +184,7 @@ resource "azurerm_log_analytics_workspace" "this" {
 }
 
 # ---------------------------------------------------------------------------
-# Container Apps environment (Consumption only, no workload profiles)
+# Container Apps environment (Consumption profile only)
 # ---------------------------------------------------------------------------
 resource "azurerm_container_app_environment" "this" {
   name                = "cae-${var.poc_name}"
@@ -196,6 +196,12 @@ resource "azurerm_container_app_environment" "this" {
   # at PoC volume.
   log_analytics_workspace_id = azurerm_log_analytics_workspace.this.id
   logs_destination           = "log-analytics"
+
+  # Azure adds this default profile to every new environment. Declaring it keeps plans clean.
+  workload_profile {
+    name                  = "Consumption"
+    workload_profile_type = "Consumption"
+  }
 
   tags = local.tags
 }
@@ -262,6 +268,7 @@ resource "azurerm_container_app" "api" {
   resource_group_name          = azurerm_resource_group.this.name
   container_app_environment_id = azurerm_container_app_environment.this.id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
 
   identity {
     type         = "UserAssigned"
@@ -340,6 +347,7 @@ resource "azurerm_container_app" "web" {
   resource_group_name          = azurerm_resource_group.this.name
   container_app_environment_id = azurerm_container_app_environment.this.id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
 
   identity {
     type         = "UserAssigned"
