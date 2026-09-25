@@ -1,0 +1,39 @@
+# Local container run, mirroring the Azure Container Apps topology:
+# frontend (nginx, public :8080) proxies /api/* to backend (internal only, :8000).
+# Prereqs: `az login` on the host and backend/.env from infra/write-env.sh.
+name: basic-chatbot
+
+services:
+  backend:
+    build:
+      context: ./backend
+      target: local # adds the Azure CLI; the default target (used by az acr build) does not
+    image: basic-chatbot-api:local
+    env_file: backend/.env
+    environment:
+      AZURE_CONFIG_DIR: /home/app/.azure
+    volumes:
+      # Host `az login` session, read-only; copied into AZURE_CONFIG_DIR at start.
+      - ${HOME}/.azure:/host-azure:ro
+    # No published port: like the internal-only ingress in ACA.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  frontend:
+    build: ./frontend
+    image: basic-chatbot-web:local
+    ports:
+      - "8080:8080"
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy

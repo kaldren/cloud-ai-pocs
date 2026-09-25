@@ -1,0 +1,4 @@
+# Dependency build scripts are denied unless reviewed here.
+allowBuilds:
+  # Only copies the browser service worker; tests use msw/node, so it is not needed.
+  msw: false

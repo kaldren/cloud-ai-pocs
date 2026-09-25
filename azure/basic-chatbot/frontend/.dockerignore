@@ -2,4 +2,8 @@ node_modules
 dist
 .env
 .env.*
+.vite
+.eslintcache
+coverage
 Dockerfile
+.dockerignore
