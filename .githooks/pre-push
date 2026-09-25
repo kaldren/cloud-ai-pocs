@@ -2,6 +2,9 @@
 # Scan the commits being pushed, including any made with --no-verify.
 set -euo pipefail
 
+# GUI Git clients (VS Code, etc.) don't inherit the shell PATH, so add Homebrew's bin dirs.
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin"
+
 if ! command -v betterleaks >/dev/null 2>&1; then
   echo "pre-push: betterleaks is not installed (brew install betterleaks). Push blocked." >&2
   exit 1

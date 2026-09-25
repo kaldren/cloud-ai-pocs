@@ -2,6 +2,9 @@
 # Block commits that add secrets. Enable with: git config core.hooksPath .githooks
 set -euo pipefail
 
+# GUI Git clients (VS Code, etc.) don't inherit the shell PATH, so add Homebrew's bin dirs.
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin"
+
 if ! command -v betterleaks >/dev/null 2>&1; then
   echo "pre-commit: betterleaks is not installed (brew install betterleaks). Commit blocked." >&2
   exit 1
