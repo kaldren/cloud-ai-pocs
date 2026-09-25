@@ -22,6 +22,7 @@ Create the PoC yourself (in the main session), modelled on `azure/basic-chatbot/
 - `backend/`: create it with `uv init`, then `uv add` the SDKs from the research brief plus `pydantic-settings`, and `uv add --dev ruff mypy pytest`. Add `.python-version`, a settings module, `.env.example` from the brief's Env vars block, a minimal app with a health endpoint, and at least one test in `tests/`.
 - `frontend/` only if a UI was requested. Start the **react-developer** agent to scaffold it against the backend's API.
 - `docs/` for design notes.
+- Optional: if the PoC will ship as containers, or the user wants to run it locally in containers, start the **local-devops** agent after the backend (and frontend) exist.
 Keep it minimal: this is a PoC skeleton, not the feature.
 
 ## 4. Infra

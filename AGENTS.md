@@ -36,5 +36,6 @@ Start a new PoC with `/new-poc <cloud> <poc-name> "<idea>"` (`.claude/skills/new
 - `azure-infra`: Azure-specific infra. It uses the Azure MCP server (read-only) for live subscription context, writes Terraform, and applies only after the user approves.
 - `python-developer`: writes and changes Python code under these conventions and leaves ruff, pyright, and pytest passing. Any PoC can use it directly.
 - `react-developer`: writes and changes a PoC's React + TypeScript frontend and leaves lint, typecheck, tests, and build passing. Any PoC can use it directly.
+- `local-devops`: writes a PoC's Dockerfiles and `compose.yaml` from its tech stack, then builds and runs it locally with Docker Compose (OrbStack). Containers use your own cloud CLI login, so no keys are needed. It never pushes images or deploys.
 - `poc-verifier`: an independent check against these conventions. It reports only.
 Cloud resources go in one resource group (or project, or tag set) per PoC, tagged `poc`, `owner`, `created`.
