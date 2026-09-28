@@ -1,3 +1,4 @@
+import json
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import cast
@@ -7,6 +8,9 @@ from azure.core.exceptions import ClientAuthenticationError, HttpResponseError
 from fastapi.testclient import TestClient
 from openai import OpenAIError
 from openai.types.chat import ChatCompletionChunk, ChatCompletionMessageParam
+from openai.types.chat.chat_completion_chunk import Choice
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from opentelemetry.trace import StatusCode
 
 from app.config import Settings, get_settings
 from app.main import app, get_openai_client, get_search_client
@@ -55,9 +59,21 @@ class FakeCompletions:
     calls: list[dict[str, object]] = field(default_factory=list[dict[str, object]])
 
     def create(
-        self, *, model: str, messages: list[ChatCompletionMessageParam], stream: bool
+        self,
+        *,
+        model: str,
+        messages: list[ChatCompletionMessageParam],
+        stream: bool,
+        stream_options: dict[str, bool],
     ) -> FakeStream:
-        self.calls.append({"model": model, "messages": messages, "stream": stream})
+        self.calls.append(
+            {
+                "model": model,
+                "messages": messages,
+                "stream": stream,
+                "stream_options": stream_options,
+            }
+        )
         if self.error is not None:
             raise self.error
         assert self.stream is not None
@@ -138,6 +154,7 @@ def test_grounds_prompt_in_retrieved_sources_and_uses_deployment(
     [call] = completions.calls
     assert call["model"] == "gpt-4.1-mini"
     assert call["stream"] is True
+    assert call["stream_options"] == {"include_usage": True}  # token usage for tracing
     system, *rest = cast(list[dict[str, str]], call["messages"])
     assert rest == history
     assert system["role"] == "system"
@@ -291,3 +308,61 @@ def test_mid_stream_failure_ends_stream_and_logs(
     assert response.text == "partial [1]"  # no sources footer after a failure
     assert completions.stream.closed
     assert "mid-stream" in caplog.text
+
+
+def test_skips_trailing_filter_chunk_without_delta(
+    client: TestClient, completions: FakeCompletions
+) -> None:
+    # Azure can end the stream with a content-filter chunk whose choice has no delta.
+    filter_chunk = chunk("x")
+    filter_chunk.choices = [Choice.model_construct(index=0, delta=None, finish_reason=None)]
+    completions.stream = FakeStream([chunk("Hi"), filter_chunk])
+
+    response = client.post("/chat", json={"messages": [user("Hi")]})
+
+    assert response.text == "Hi"
+
+
+def test_traces_the_turn_as_an_invoke_agent_span(
+    client: TestClient, spans: InMemorySpanExporter
+) -> None:
+    client.post("/chat", json={"messages": [user("Hi")]})
+
+    (agent,) = [s for s in spans.get_finished_spans() if s.name.startswith("invoke_agent")]
+    attributes = dict(agent.attributes or {})
+    assert agent.name == "invoke_agent basic-chatbot"
+    assert attributes["gen_ai.operation.name"] == "invoke_agent"
+    assert attributes["gen_ai.request.model"] == "gpt-4.1-mini"
+    assert attributes["gen_ai.agent.id"] == "test-agent"  # from the span processor
+    # Content capture is off by default.
+    assert "gen_ai.input.messages" not in attributes
+    assert "gen_ai.output.messages" not in attributes
+
+
+def test_records_messages_on_the_agent_span_when_capture_is_on(
+    client: TestClient, spans: InMemorySpanExporter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("GENAI_CAPTURE_CONTENT", "true")
+    get_settings.cache_clear()
+
+    client.post("/chat", json={"messages": [user("Hi")]})
+
+    (agent,) = [s for s in spans.get_finished_spans() if s.name.startswith("invoke_agent")]
+    attributes = dict(agent.attributes or {})
+    assert json.loads(str(attributes["gen_ai.input.messages"])) == [
+        {"role": "user", "parts": [{"type": "text", "content": "Hi"}]}
+    ]
+    (output,) = json.loads(str(attributes["gen_ai.output.messages"]))
+    assert output["role"] == "assistant"
+    assert output["parts"][0]["content"].startswith("Hello!")
+
+
+def test_marks_the_agent_span_as_failed_on_502(
+    client: TestClient, completions: FakeCompletions, spans: InMemorySpanExporter
+) -> None:
+    completions.error = OpenAIError("boom")
+
+    client.post("/chat", json={"messages": [user("Hi")]})
+
+    (agent,) = [s for s in spans.get_finished_spans() if s.name.startswith("invoke_agent")]
+    assert agent.status.status_code is StatusCode.ERROR

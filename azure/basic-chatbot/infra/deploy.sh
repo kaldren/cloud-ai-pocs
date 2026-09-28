@@ -17,6 +17,11 @@ frontend_url="$(terraform output -raw frontend_url)"
 subscription="$(awk -F'"' '/^[[:space:]]*subscription_id/ {print $2}' terraform.tfvars)"
 
 tag="$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)"
+# Uncommitted changes would otherwise reuse the last commit's tag, and the apps
+# would not roll to a new revision.
+if [ -n "$(git status --porcelain -- .. 2>/dev/null)" ]; then
+  tag="${tag}-dirty-$(date +%Y%m%d%H%M%S)"
+fi
 
 echo "Building images with tag ${tag} in ${acr}"
 az acr build --subscription "$subscription" --registry "$acr" \

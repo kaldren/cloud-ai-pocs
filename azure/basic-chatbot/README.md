@@ -10,9 +10,10 @@ Basic RAG chatbot on Azure: a React UI talks to a FastAPI backend, which grounds
 | RAG      | Azure AI Search (retrieval)   |
 | LLM      | Foundry: gpt-4.1-mini, text-embedding-3-small |
 | Auth     | Keyless (Entra ID, `DefaultAzureCredential`) |
+| Tracing  | OpenTelemetry → Application Insights → Foundry (external agent) |
 | Infra    | Terraform (`infra/`)          |
 
-See [`docs/rag.md`](docs/rag.md) for the RAG design (ingestion and retrieval).
+See [`docs/rag.md`](docs/rag.md) for the RAG design (ingestion and retrieval), and [`docs/observability.md`](docs/observability.md) for tracing in Foundry.
 
 ## Structure
 ```
@@ -22,6 +23,8 @@ backend/    FastAPI app; Dockerfile = uvicorn on :8000
   app/chat.py           Chat request models + streaming from gpt-4.1-mini
   app/config.py         Settings from env / .env
   app/azure_clients.py  Keyless Search + OpenAI clients
+  app/telemetry.py      OpenTelemetry tracing to Application Insights (one trace per chat turn)
+  app/register_agent.py CLI: register the backend in Foundry as an external agent
   app/rag/              Azure AI Search RAG
     index.py            `docs` index schema (hybrid: BM25 + HNSW vectors)
     chunking.py         Markdown chunking (~500 tokens, 75 overlap)

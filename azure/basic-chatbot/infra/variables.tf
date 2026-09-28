@@ -55,3 +55,9 @@ variable "embedding_capacity_ktpm" {
   type        = number
   default     = 30
 }
+
+variable "genai_capture_content" {
+  description = "Record prompts and replies on trace spans (GENAI_CAPTURE_CONTENT). On for this PoC because its data is a fictional handbook; turn off for real user data."
+  type        = bool
+  default     = true
+}

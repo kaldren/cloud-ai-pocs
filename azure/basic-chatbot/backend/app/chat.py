@@ -3,10 +3,11 @@
 import logging
 from collections.abc import Callable, Iterator
 from enum import StrEnum
-from typing import Annotated, Protocol, Self
+from typing import Annotated, Protocol, Self, cast
 
 from openai import OpenAI, OpenAIError
 from openai.types.chat import ChatCompletionChunk, ChatCompletionMessageParam
+from openai.types.chat.chat_completion_chunk import ChoiceDelta
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
@@ -53,8 +54,16 @@ class ChunkStream(Protocol):
 def start_stream(
     client: OpenAI, deployment: str, messages: list[ChatCompletionMessageParam]
 ) -> ChunkStream:
-    """Open the upstream stream. Raises on failure, before any bytes reach the client."""
-    return client.chat.completions.create(model=deployment, messages=messages, stream=True)
+    """Open the upstream stream. Raises on failure, before any bytes reach the client.
+
+    `include_usage` adds a final chunk with token counts, which tracing records.
+    """
+    return client.chat.completions.create(
+        model=deployment,
+        messages=messages,
+        stream=True,
+        stream_options={"include_usage": True},
+    )
 
 
 def iter_text(
@@ -62,7 +71,8 @@ def iter_text(
 ) -> Iterator[str]:
     """Yield the reply's text deltas; a mid-stream upstream error is logged and ends the stream.
 
-    Chunks without choices (Azure's content-filter preamble) or without content are skipped.
+    Chunks without choices (Azure's content-filter preamble, the usage chunk), without a delta
+    (Azure's trailing content-filter chunk) or without content are skipped.
     After a clean finish, `on_complete` gets the full reply and whatever it returns is yielded
     last (e.g. a sources footer). It is not called when the stream fails part-way.
     """
@@ -71,7 +81,9 @@ def iter_text(
         for chunk in stream:
             if not chunk.choices:
                 continue
-            content = chunk.choices[0].delta.content
+            # Typed as always present, but Azure's trailing filter chunk has no delta.
+            delta = cast("ChoiceDelta | None", chunk.choices[0].delta)
+            content = delta.content if delta is not None else None
             if content:
                 parts.append(content)
                 yield content

@@ -6,6 +6,11 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.81"
     }
+    # Only for what azurerm can't express yet: Foundry project connections (observability.tf).
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.13"
+    }
   }
   # Local state on purpose (PoC). State files are gitignored at the repo root.
 }
@@ -17,6 +22,10 @@ provider "azurerm" {
       purge_soft_delete_on_destroy = true
     }
   }
+  subscription_id = var.subscription_id
+}
+
+provider "azapi" {
   subscription_id = var.subscription_id
 }
 
@@ -77,6 +86,14 @@ resource "azurerm_cognitive_account" "this" {
 
   # Keyless: API keys disabled.
   local_auth_enabled = false
+
+  # Lets the account hold Foundry projects (observability.tf). Projects require a
+  # managed identity on the account. Turning this off later forces a new account.
+  project_management_enabled = true
+
+  identity {
+    type = "SystemAssigned"
+  }
 
   tags = local.tags
 }
@@ -326,6 +343,16 @@ resource "azurerm_container_app" "api" {
       env {
         name  = "AZURE_CLIENT_ID"
         value = azurerm_user_assigned_identity.apps.client_id
+      }
+      # Tracing (observability.tf). Not a secret: local auth is off, so ingestion
+      # needs the identity's Entra token.
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = azurerm_application_insights.this.connection_string
+      }
+      env {
+        name  = "GENAI_CAPTURE_CONTENT"
+        value = tostring(var.genai_capture_content)
       }
     }
   }

@@ -25,6 +25,22 @@ output "azure_openai_embedding_deployment" {
   value       = azurerm_cognitive_deployment.embedding.name
 }
 
+output "applicationinsights_connection_string" {
+  description = "APPLICATIONINSIGHTS_CONNECTION_STRING (ingestion still needs Entra ID; local auth is off)"
+  value       = azurerm_application_insights.this.connection_string
+  sensitive   = true
+}
+
+output "genai_capture_content" {
+  description = "GENAI_CAPTURE_CONTENT"
+  value       = var.genai_capture_content
+}
+
+output "foundry_project_endpoint" {
+  description = "FOUNDRY_PROJECT_ENDPOINT (used by app.register_agent)"
+  value       = azurerm_cognitive_account_project.this.endpoints["AI Foundry API"]
+}
+
 # ---------------------------------------------------------------------------
 # Hosting outputs (NOT .env keys; write-env.sh ignores them, deploy.sh reads them)
 # ---------------------------------------------------------------------------
@@ -57,4 +73,18 @@ output "frontend_app_name" {
 output "frontend_url" {
   description = "Public URL of the frontend"
   value       = "https://${azurerm_container_app.web.ingress[0].fqdn}"
+}
+
+# ---------------------------------------------------------------------------
+# Observability outputs (NOT .env keys)
+# ---------------------------------------------------------------------------
+
+output "foundry_project_name" {
+  description = "Foundry project that shows traces, monitoring, and evaluations"
+  value       = azurerm_cognitive_account_project.this.name
+}
+
+output "app_insights_name" {
+  description = "Application Insights resource connected to the Foundry project"
+  value       = azurerm_application_insights.this.name
 }
